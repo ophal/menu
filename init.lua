@@ -1,5 +1,6 @@
 local module_invoke_all, empty, l = module_invoke_all, seawolf.variable.empty, l
 local tconcat, tinsert, theme, pairs = table.concat, table.insert, theme, pairs
+local type, tsort = type, table.sort
 
 local debug = debug
 
@@ -30,8 +31,34 @@ function theme.menu(variables)
   local menu = get_menus()[menu_id] or {}
 
   local items = {}
-  for k, v in pairs(menu) do
-    tinsert(items, l(v, k))
+  for path, v in pairs(menu) do
+    if type(v) ~= 'table' then
+      v = {v}
+    end
+    if v.weight == nil then
+      v.weight = 0
+    end
+
+    local label, options
+    label = v[1]
+    v[1] = nil
+    options = v
+
+    tinsert(items, {l(label, path, options), weight = v.weight})
   end
-  return theme{'item_list', id = 'menu_' .. menu_id, class = 'menu', list = items}
+
+  tsort(items, function (a, b)
+    return a.weight < b.weight
+  end)
+
+  return
+    '<nav id="menu_' .. menu_id  .. '">' ..
+    (function (items)
+      local output = {}
+      for k, v in pairs(items) do
+        tinsert(output, v[1])
+      end
+      return tconcat(output, ' | ')
+    end)(items) .. 
+    '</nav>'
 end
